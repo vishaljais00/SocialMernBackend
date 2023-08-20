@@ -2,11 +2,17 @@ const Post = require("../models/post")
 const {Responce} = require('../helper/sendResponce');
 const { findById } = require("../models/user");
 const User = require("../models/user");
+const { userImageUpload } = require("../helper/imageExport");
 
 // create a post
 exports.createPost = async(req, res) => {
     try {
-            const newPost = new Post(req.body)
+
+            const uploadedData = await userImageUpload(req, res)
+            if(uploadedData.status !== 200) return await Responce(res, 400 , 'something went wrong',uploadedData.message)
+            let updatedData = req.body
+            updatedData.img = uploadedData.imageName
+            const newPost = new Post(updatedData)
             const savePost = await newPost.save();
             return await Responce(res, 200 , 'post created successfully',savePost)
 
@@ -85,15 +91,24 @@ exports.getPost = async(req, res) => {
 // get timeline of user
 exports.getTimeline = async(req, res) => {
     try {
-            const currUser = await User.findById(req.params.userId)
-            const userPost = await Post.find({userId: currUser._id})
-            const friendPost = await Promise.all(
-                currUser.followers.map(friendId => {
-                    return Post.find({userId: friendId})
+            // const currUser = await User.findById(req.params.userId)
+            // const userPost = await Post.find({userId: currUser._id})
+            // const friendPost = await Promise.all(
+            //     currUser.followers.map(friendId => {
+            //         return Post.find({userId: friendId})
                   
-                })
-            )
-            return await Responce(res, 200 , 'timeline post', userPost.concat(...friendPost))
+            //     })
+            // )
+            const currUser = await User.findById(req.params.userId);
+            const userPost = await Post.find({ userId: currUser._id }).sort({ createdAt: -1 });
+            const friendPostPromises = currUser.followers.map(async friendId => {
+                const friendPosts = await Post.find({ userId: friendId });
+                return friendPosts;
+            });
+            const friendPosts = await Promise.all(friendPostPromises);
+            const flattenedFriendPosts = friendPosts.flat().sort((a, b) => b.createdAt - a.createdAt);
+    
+            return await Responce(res, 200 , 'timeline post', userPost.concat(...flattenedFriendPosts))
     } catch (error) {
         console.log(error)
         return await Responce(res, 500 , 'something went wrong',error)
@@ -104,7 +119,7 @@ exports.getTimeline = async(req, res) => {
 exports.getUserAllPost = async(req, res) => {
     try {
             const user = await User.findOne({username: req.params.username})
-            const userPost = await Post.find({userId: user._id})
+            const userPost = await Post.find({userId: user._id}).sort({ createdAt: -1 });
             return await Responce(res, 200 , 'user posts', userPost)
     } catch (error) {
         console.log(error)
