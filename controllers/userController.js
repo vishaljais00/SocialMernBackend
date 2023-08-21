@@ -59,12 +59,36 @@ exports.getUser = async(req, res) => {
     }
 }
 
+// get firend list
+
+exports.getFriends = async(req, res) => {
+    try {
+            
+            const user = await User.findById(req.params.userId)         
+            const friends = await Promise.all(
+                user.following?.map(friendId => {
+                    return User.findById(friendId)
+                })
+
+            )
+            let friendList = [];
+            friends.map(friend=>{
+                const {_id, username, profilePicture} = friend
+                friendList.push({_id, username, profilePicture})
+            })
+            return await Responce(res, 200 , 'friend List', friendList)
+    } catch (error) {   
+        console.log(error)
+        return await Responce(res, 500 , 'something went wrong',error)
+    }
+}
+
 //follow a user
 
 exports.followUser = async(req, res) => {
     try {
         if(req.body.userID !== req.params.id ){
-            const user = await User.findById(req.params.id)
+            const user = await User.findById(req.params.id) 
             const currUser = await User.findById(req.body.userID)
             if(!user.followers.includes(req.body.userID)){
                 await user.updateOne({$push:{
@@ -115,4 +139,17 @@ exports.unfollowUser = async(req, res) => {
         return await Responce(res, 500 , 'something went wrong',error)
     }
 }
+
+exports.UserAFriend = async(req, res) => {
+    try {
+       
+            const user = await User.findOne({_id:req.body.userID, following: req.params.id})
+            return await Responce(res, 200 , 'follow status', user)
+          
+    } catch (error) {   
+        console.log(error)
+        return await Responce(res, 500 , 'something went wrong',error)
+    }
+}
+
 
