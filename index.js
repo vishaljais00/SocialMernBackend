@@ -9,6 +9,8 @@ const cors = require('cors')
 const userRoute = require('./routes/userRoute')
 const authRoute = require('./routes/authRoute')
 const postRoute = require('./routes/postRoute')
+const conversationRoutes = require('./routes/conversationRoute')
+const messageRoutes = require('./routes/messageRoutes')
 const path = require('path')
 
 
@@ -48,6 +50,8 @@ app.use("/images", express.static(path.join(__dirname, "public/images")))
 app.use('/api/user', userRoute);
 app.use('/api/auth', authRoute);
 app.use('/api/post', postRoute);
+app.use('/api/conv', conversationRoutes);
+app.use('/api/message', messageRoutes);
 
 
 
