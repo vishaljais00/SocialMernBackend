@@ -100,15 +100,27 @@ exports.getTimeline = async(req, res) => {
             //     })
             // )
             const currUser = await User.findById(req.params.userId);
+
+            // Fetch the posts of the current user
             const userPost = await Post.find({ userId: currUser._id }).sort({ createdAt: -1 });
+            
+            // Fetch and combine the posts of the user's friends
             const friendPostPromises = currUser.followers.map(async friendId => {
                 const friendPosts = await Post.find({ userId: friendId });
                 return friendPosts;
             });
+            
             const friendPosts = await Promise.all(friendPostPromises);
-            const flattenedFriendPosts = friendPosts.flat().sort((a, b) => b.createdAt - a.createdAt);
+            const flattenedFriendPosts = friendPosts.flat();
+            
+            // Combine the user's posts and friend's posts, then sort by createdAt in descending order
+            const allPosts = [...userPost, ...flattenedFriendPosts];
+            allPosts.sort((a, b) => b.createdAt - a.createdAt);
+            
+            // Now allPosts contains all posts combined and sorted by createdAt
+            
     
-            return await Responce(res, 200 , 'timeline post', userPost.concat(...flattenedFriendPosts))
+            return await Responce(res, 200 , 'timeline post', allPosts)
     } catch (error) {
         console.log(error)
         return await Responce(res, 500 , 'something went wrong',error)

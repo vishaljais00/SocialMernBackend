@@ -34,9 +34,9 @@ exports.loginUser = async(req, res)=>{
     try {
         const {email , password} = req.body
         const user = await User.findOne({email})
-        !user && res.status(404).send("user not found")
+        if(!user) return res.status(404).send("user not found")
         const validPassword = await bcrypt.compare(password , user.password)
-        if (!validPassword){ return await Responce(res, 404 , 'user not found')}
+        if (!validPassword) return await Responce(res, 404 , 'user not found')
         const acesstoken = jwt.sign(
             {     
                 user:{
